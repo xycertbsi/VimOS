@@ -1,0 +1,129 @@
+# VIN OS Makefile
+
+ASM = nasm
+CC = gcc
+LD = ld
+GRUB_MKRESCUE = grub-mkrescue
+
+CFLAGS = -m32 -ffreestanding -O2 -Wall -Wextra -fno-pie -I.
+LDFLAGS_FLOPPY = -m elf_i386 -T linker.ld --oformat binary
+LDFLAGS_GRUB = -m elf_i386 -T linker_multiboot.ld
+
+BOOT_DIR = boot
+KERNEL_DIR = kernel
+ISO_DIR = isodir
+
+KERNEL_OBJS = kernel.o window.o keyboard.o menu.o apps.o filesystem.o
+
+all: os-image.bin
+
+# Floppy disk image (legacy boot)
+bootloader.bin: $(BOOT_DIR)/bootloader.asm
+	@echo "Building bootloader..."
+	$(ASM) -f bin $< -o $@
+
+entry.o: $(KERNEL_DIR)/entry.asm
+	@echo "Building entry point..."
+	$(ASM) -f elf32 $< -o $@
+
+kernel.o: $(KERNEL_DIR)/kernel.c
+	@echo "Building kernel..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+window.o: $(KERNEL_DIR)/window.c
+	@echo "Building window manager..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+keyboard.o: $(KERNEL_DIR)/keyboard.c
+	@echo "Building keyboard driver..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+menu.o: $(KERNEL_DIR)/menu.c
+	@echo "Building menu system..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+apps.o: $(KERNEL_DIR)/apps.c
+	@echo "Building applications..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+filesystem.o: kernel/filesystem.c
+	@echo "Building file system..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+kernel.bin: entry.o $(KERNEL_OBJS) linker.ld
+	@echo "Linking kernel (floppy)..."
+	$(LD) $(LDFLAGS_FLOPPY) -o $@ entry.o $(KERNEL_OBJS)
+
+os-image.bin: bootloader.bin kernel.bin
+	@echo "Creating floppy image..."
+	cat $^ > $@
+	dd if=/dev/zero bs=512 count=100 >> $@ 2>/dev/null
+	@echo "Floppy image complete!"
+
+# GRUB/ISO bootable image
+multiboot_entry.o: $(KERNEL_DIR)/multiboot_entry.asm
+	@echo "Building multiboot entry..."
+	$(ASM) -f elf32 $< -o $@
+
+vinos.elf: multiboot_entry.o $(KERNEL_OBJS) linker_multiboot.ld
+	@echo "Linking kernel (multiboot)..."
+	$(LD) $(LDFLAGS_GRUB) -o $@ multiboot_entry.o $(KERNEL_OBJS)
+	@echo "Multiboot kernel complete!"
+
+iso: vinos.iso
+
+vinos.iso: vinos.elf
+	@echo "Creating ISO image..."
+	@mkdir -p $(ISO_DIR)/boot/grub
+	@cp vinos.elf $(ISO_DIR)/boot/vinos.elf
+	@echo 'set timeout=3' > $(ISO_DIR)/boot/grub/grub.cfg
+	@echo 'set default=0' >> $(ISO_DIR)/boot/grub/grub.cfg
+	@echo '' >> $(ISO_DIR)/boot/grub/grub.cfg
+	@echo 'menuentry "VIN OS v0.4" {' >> $(ISO_DIR)/boot/grub/grub.cfg
+	@echo '    multiboot /boot/vinos.elf' >> $(ISO_DIR)/boot/grub/grub.cfg
+	@echo '    boot' >> $(ISO_DIR)/boot/grub/grub.cfg
+	@echo '}' >> $(ISO_DIR)/boot/grub/grub.cfg
+	@$(GRUB_MKRESCUE) -o vinos.iso $(ISO_DIR) 2>/dev/null || \
+		(echo "Error: Install grub-mkrescue (sudo apt install grub-pc-bin xorriso)" && false)
+	@echo "ISO created: vinos.iso"
+
+run: os-image.bin
+	@echo "Running floppy image with QEMU..."
+	qemu-system-i386 -fda $<
+
+run-iso: vinos.iso
+	@echo "Running ISO with QEMU..."
+	qemu-system-i386 -cdrom vinos.iso -boot d -m 128M
+
+test-iso: vinos.iso
+	@echo "Testing ISO with verbose output..."
+	qemu-system-i386 -cdrom vinos.iso -boot d -m 128M -serial stdio
+
+clean:
+	@echo "Cleaning build files..."
+	@rm -f *.o *.bin *.elf
+	@rm -rf $(ISO_DIR)
+	@rm -f vinos.iso
+
+help:
+	@echo "VIN OS Build System"
+	@echo "==================="
+	@echo ""
+	@echo "Floppy Boot (Legacy):"
+	@echo "  make              - Build os-image.bin"
+	@echo "  make run          - Run floppy image"
+	@echo ""
+	@echo "ISO Boot (GRUB Multiboot):"
+	@echo "  make iso          - Build vinos.iso"
+	@echo "  make run-iso      - Run ISO image"
+	@echo "  make test-iso     - Test ISO with debug output"
+	@echo ""
+	@echo "Other:"
+	@echo "  make clean        - Remove all build files"
+	@echo "  make help         - Show this help"
+	@echo ""
+	@echo "Install GRUB tools:"
+	@echo "  sudo apt install grub-pc-bin xorriso"
+	@echo ""
+
+.PHONY: all iso run run-iso test-iso clean help
