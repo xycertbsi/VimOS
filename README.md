@@ -12,6 +12,10 @@ sudo apt install nasm gcc binutils qemu
 ```bash
 sudo apt install nasm gcc binutils qemu
 ```
+Clone it:
+```bash
+git https://github.com/xycertbsi/VimOS.git
+```
 To build it:
 ```bash
 make
