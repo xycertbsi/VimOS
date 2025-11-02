@@ -18,6 +18,7 @@ To build it:
 ```bash
 make
 ```
+The generated file is a "os.bin" this is your OS
 To test it:
 ```bash
 make run
