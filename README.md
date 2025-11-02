@@ -10,9 +10,6 @@ To build you need this, required packages:
 ```bash
 sudo apt install nasm gcc binutils qemu
 ```
-```bash
-sudo apt install nasm gcc binutils qemu
-```
 Clone it:
 ```bash
 git https://github.com/xycertbsi/VimOS.git
