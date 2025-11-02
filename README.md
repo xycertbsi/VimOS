@@ -1,7 +1,7 @@
 
 # VimOS
 *xycert @ 2025*
-
+*sory for errors in text my english is not prety good*
 Operating system on Assembly and C.
 I the code created with AI(Claude 4.5)
 I start from bootOS(nanochess project) ***thx***
@@ -22,4 +22,3 @@ To clean the generated files like .o and .bin:
 make clean
 ```
 **Warning: its not a .iso file build its build a simple .bin file to run sry**
-*sory for errors in text my english is not prety good*
