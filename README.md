@@ -1,4 +1,3 @@
-
 # VimOS  
 *xycert @ 2025*  
 *sory for errors in text my english is not prety good*  
@@ -27,4 +26,5 @@ To clean the generated files like .o and .bin:
 ```bash
 make clean
 ```
+<img width="735" height="482" alt="kép" src="https://github.com/user-attachments/assets/89b74ada-4999-410f-8873-d05244c4b2c1" />
 **Warning: its not a .iso file build its build a simple .bin file to run sry**
