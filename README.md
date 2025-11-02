@@ -22,3 +22,4 @@ To clean the generated files like .o and .bin:
 make clean
 ```
 **Warning: its not a .iso file build its build a simple .bin file to run sry**
+*sory for errors in text my english is not prety good*
